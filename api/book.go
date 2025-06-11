@@ -1,20 +1,20 @@
 package api
 
 import (
-	"Book-API-Server/config"
+	"Book-API-Server/controller"
 	"Book-API-Server/model"
 	"Book-API-Server/response"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"strconv"
 )
 
 type BookApiHandler struct {
-	db *gorm.DB
+	svc *controller.BookController
 }
 
 func NewBookApiHandler() *BookApiHandler {
 	return &BookApiHandler{
-		db: config.Get().MySQL.DB(),
+		svc: controller.NewBookController(),
 	}
 }
 
@@ -28,13 +28,14 @@ func (h *BookApiHandler) Registry(r *gin.Engine) {
 }
 
 func (h *BookApiHandler) CreateBook(ctx *gin.Context) {
-	ins := new(model.Book)
-	if err := ctx.ShouldBindJSON(ins); err != nil {
+	req := new(model.BookSpec)
+	if err := ctx.ShouldBindJSON(req); err != nil {
 		response.Failed(ctx, err)
 		return
 	}
 
-	if err := h.db.Save(ins).Error; err != nil {
+	ins, err := h.svc.CreateBook(ctx.Request.Context(), req)
+	if err != nil {
 		response.Failed(ctx, err)
 		return
 	}
@@ -43,8 +44,8 @@ func (h *BookApiHandler) CreateBook(ctx *gin.Context) {
 }
 
 func (h *BookApiHandler) ListBooks(ctx *gin.Context) {
-	var books []model.Book
-	if err := h.db.Find(&books).Error; err != nil {
+	books, err := h.svc.ListBooks(ctx.Request.Context())
+	if err != nil {
 		response.Failed(ctx, err)
 		return
 	}
@@ -52,10 +53,15 @@ func (h *BookApiHandler) ListBooks(ctx *gin.Context) {
 }
 
 func (h *BookApiHandler) GetBook(ctx *gin.Context) {
-	var ins model.Book
-	id := ctx.Param("isbn")
+	strId := ctx.Param("isbn")
+	id, err := strconv.ParseUint(strId, 10, 0)
+	if err != nil {
+		response.Failed(ctx, err)
+		return
+	}
 
-	if err := h.db.Where("isbn = ?", id).Take(&ins).Error; err != nil {
+	ins, err := h.svc.GetBook(ctx.Request.Context(), &controller.GetBookRequest{Isbn: uint(id)})
+	if err != nil {
 		response.Failed(ctx, err)
 		return
 	}
@@ -64,21 +70,21 @@ func (h *BookApiHandler) GetBook(ctx *gin.Context) {
 }
 
 func (h *BookApiHandler) UpdateBook(ctx *gin.Context) {
-	id := ctx.Param("isbn")
+	strId := ctx.Param("isbn")
+	id, err := strconv.ParseUint(strId, 10, 0)
+	if err != nil {
+		response.Failed(ctx, err)
+		return
+	}
 
-	req := model.BookSpec{}
+	req := new(model.BookSpec)
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		response.Failed(ctx, err)
 		return
 	}
 
-	if err := h.db.Where("isbn = ?", id).Model(&model.Book{}).Updates(&req).Error; err != nil {
-		response.Failed(ctx, err)
-		return
-	}
-
-	var ins model.Book
-	if err := h.db.Where("isbn = ?", id).Take(&ins).Error; err != nil {
+	ins, err := h.svc.UpdateBook(ctx.Request.Context(), uint(id), req)
+	if err != nil {
 		response.Failed(ctx, err)
 		return
 	}
@@ -87,9 +93,17 @@ func (h *BookApiHandler) UpdateBook(ctx *gin.Context) {
 }
 
 func (h *BookApiHandler) DeleteBook(ctx *gin.Context) {
-	id := ctx.Param("isbn")
-	if err := h.db.Where("isbn = ?", id).Delete(&model.Book{}).Error; err != nil {
+	strId := ctx.Param("isbn")
+	id, err := strconv.ParseUint(strId, 10, 0)
+	if err != nil {
 		response.Failed(ctx, err)
 		return
 	}
+
+	if err = h.svc.DeleteBook(ctx.Request.Context(), &controller.GetBookRequest{Isbn: uint(id)}); err != nil {
+		response.Failed(ctx, err)
+		return
+	}
+
+	response.Success(ctx, nil)
 }
