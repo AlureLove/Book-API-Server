@@ -22,7 +22,7 @@ type BookSpec struct {
 }
 
 func (t *Book) TableName() string {
-	return "book"
+	return "books"
 }
 
 func Failed(ctx *gin.Context, err error) {
