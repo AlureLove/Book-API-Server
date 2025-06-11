@@ -26,7 +26,10 @@ func NewBookController() *BookController {
 }
 
 func (c *BookController) CreateBook(ctx context.Context, req *model.BookSpec) (*model.Book, error) {
+	c.logger.Info().Str("title", req.Title).Msg("Creating book")
+	
 	if err := req.Validate(); err != nil {
+		c.logger.Error().Err(err).Msg("Book validation failed")
 		return nil, err
 	}
 
@@ -34,9 +37,11 @@ func (c *BookController) CreateBook(ctx context.Context, req *model.BookSpec) (*
 		BookSpec: *req,
 	}
 	if err := c.db.WithContext(ctx).Save(ins).Error; err != nil {
+		c.logger.Error().Err(err).Msg("Failed to save book to database")
 		return nil, err
 	}
 
+	c.logger.Info().Uint("isbn", ins.IsBN).Msg("Book created successfully")
 	return ins, nil
 }
 
