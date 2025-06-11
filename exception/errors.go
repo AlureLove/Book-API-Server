@@ -15,5 +15,5 @@ func IsNotFound(err error) bool {
 }
 
 func ErrNotFound(format string, a ...any) *ApiException {
-	return NewApiException(ERR_NOT_FOUND, fmt.Sprintf(format, a...))
+	return NewApiException(ERR_NOT_FOUND, fmt.Sprintf(format, a...)).WithHttpCode(404)
 }
