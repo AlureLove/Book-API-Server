@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"Book-API-Server/controller"
+	"Book-API-Server/exception"
 	"Book-API-Server/model"
 	"context"
 	"testing"
@@ -10,6 +11,11 @@ import (
 func TestGetBook(t *testing.T) {
 	book := controller.NewBookController()
 	ins, err := book.GetBook(context.Background(), &controller.GetBookRequest{Isbn: 1})
+
+	if err != nil && exception.IsNotFound(err) {
+		t.Log("is not found error")
+	}
+
 	if err != nil {
 		t.Fatal(err)
 	}

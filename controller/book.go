@@ -2,13 +2,16 @@ package controller
 
 import (
 	"Book-API-Server/config"
+	"Book-API-Server/exception"
 	"Book-API-Server/model"
 	"context"
+	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 )
 
 type BookController struct {
-	db *gorm.DB
+	db     *gorm.DB
+	logger *zerolog.Logger
 }
 
 type GetBookRequest struct {
@@ -17,7 +20,8 @@ type GetBookRequest struct {
 
 func NewBookController() *BookController {
 	return &BookController{
-		db: config.Get().MySQL.DB(),
+		db:     config.Get().MySQL.DB(),
+		logger: config.Get().Log.Logger(),
 	}
 }
 
@@ -48,6 +52,9 @@ func (c *BookController) ListBooks(ctx context.Context) ([]*model.Book, error) {
 func (c *BookController) GetBook(ctx context.Context, req *GetBookRequest) (*model.Book, error) {
 	ins := &model.Book{}
 	if err := c.db.WithContext(ctx).Where("isbn = ?", req.Isbn).Take(ins).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, exception.ErrNotFound("%d not found", req.Isbn)
+		}
 		return nil, err
 	}
 

@@ -32,3 +32,7 @@ func (b *Book) TableName() string {
 func (b *Book) String() string {
 	return pretty.ToJSON(b)
 }
+
+func (s *BookSpec) String() string {
+	return pretty.ToJSON(s)
+}
